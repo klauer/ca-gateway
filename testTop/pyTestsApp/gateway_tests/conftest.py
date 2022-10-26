@@ -15,7 +15,7 @@ Environment variables used:
 """
 
 import contextlib
-import functools
+import dataclasses
 import gc
 import logging
 import math
@@ -26,7 +26,8 @@ import textwrap
 import threading
 import time
 from concurrent.futures import ProcessPoolExecutor
-from typing import Any, Generator, Mapping, Optional, Protocol
+from typing import (Any, Dict, Generator, List, Mapping, Optional, Protocol,
+                    Tuple)
 
 import epics
 import pytest
@@ -38,8 +39,8 @@ logger = logging.getLogger(__name__)
 
 @contextlib.contextmanager
 def run_process(
-    cmd: list[str],
-    env: dict[str, str],
+    cmd: List[str],
+    env: Dict[str, str],
     verbose: bool = True,
     interactive: bool = False,
     startup_time: float = 0.5,
@@ -47,6 +48,10 @@ def run_process(
 ):
     """
     Run ``cmd`` and yield a subprocess.Popen instance.
+
+    Parameters
+    ----------
+    cmd :
     """
     verbose = True
     logger.info("Running: %s (verbose=%s)", " ".join(cmd), verbose)
@@ -259,7 +264,7 @@ def run_gateway(
 def local_channel_access(
     ioc_port: int = config.default_ioc_port,
     gateway_port: int = config.default_gateway_port,
-):
+) -> Generator[None, None, None]:
     """
     Configures environment variables to only talk to the provided ports.
 
@@ -278,16 +283,12 @@ def local_channel_access(
             f"localhost:{gateway_port}",
         )
     )
-    with context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"):
-        with context_set_env("EPICS_CA_ADDR_LIST", address_list):
-            epics.ca.initialize_libca()
-            try:
-                yield
-            finally:
-                # This may lead to instability - probably should only run one
-                # test per process
-                epics.ca.clear_cache()
-                epics.ca.finalize_libca()
+    with (
+        context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"),
+        context_set_env("EPICS_CA_ADDR_LIST", address_list),
+    ):
+        _reset_libca()
+        yield
 
 
 @contextlib.contextmanager
@@ -302,95 +303,98 @@ def context_set_env(key: str, value: Any):
             os.environ[key] = orig_value
 
 
+def is_pyepics_libca_initialized() -> bool:
+    """Has pyepics' LIBCA been initialized?"""
+    return epics.ca.libca not in (None, epics.ca._LIBCA_FINALIZED)
+
+
+def _reset_libca() -> None:
+    gc.collect()
+    if is_pyepics_libca_initialized():
+        epics.ca.finalize_libca()
+        epics.ca.clear_cache()
+        epics.ca.initialize_libca()
+
+
 @contextlib.contextmanager
 def gateway_channel_access_env(port: int = config.default_gateway_port):
     """Set the environment up for communication solely with the spawned gateway."""
-    with context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"):
-        with context_set_env("EPICS_CA_ADDR_LIST", f"localhost:{port}"):
-            yield
+    with (
+        context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"),
+        context_set_env("EPICS_CA_ADDR_LIST", f"localhost:{port}"),
+    ):
+        _reset_libca()
+        yield
 
 
 @contextlib.contextmanager
 def ioc_channel_access_env(port: int = config.default_ioc_port):
     """Set the environment up for communication solely with the spawned IOC."""
-    with context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"):
-        with context_set_env("EPICS_CA_ADDR_LIST", f"localhost:{port}"):
-            yield
+    with (
+        context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"),
+        context_set_env("EPICS_CA_ADDR_LIST", f"localhost:{port}"),
+    ):
+        _reset_libca()
+        yield
+
+
+@dataclasses.dataclass
+class EnvironmentInfo:
+    """
+    Test environment information.
+
+    An instance of this is used as a fixture for ``standard_env``.
+    """
+
+    access: str
+    pvlist: str
+    db_file: str
+    dbd_file: Optional[str]
 
 
 @contextlib.contextmanager
-def standard_test_environment(
-    access: str = config.default_access,
-    pvlist: str = config.default_pvlist,
-    db_file: str = config.test_ioc_db,
+def file_test_environment(
+    access: str,
+    pvlist: str,
+    db_file: str,
     dbd_file: Optional[str] = None,
-):
+) -> Generator[EnvironmentInfo, None, None]:
     """
-    Standard test environment, using already-existing access rights, pvlist,
-    and database files.
+    Test environment using already-existing files on disk.
 
     Parameters
     ----------
-    access : str, optional
-        The access rights filename.  Defaults to ``default_access``.
-
-    pvlist : str, optional
-        The pvlist filename.  Defaults to ``default_pvlist``.
-
-    db_file : str, optional
-        Path to the IOC database.  Defaults to ``test_ioc_db``.
-
+    access : str
+        The access rights filename.
+    pvlist : str
+        The pvlist filename.
+    db_file : str
+        Path to the IOC database.
     dbd_file : str, optional
         Path to the IOC database definition.  Defaults to using the database
         definition provided with epics-base/softIoc.
     """
-    with run_gateway(access=access, pvlist=pvlist):
-        with run_ioc(db_file=db_file, dbd_file=dbd_file):
-            with local_channel_access():
-                yield
+    with (
+        run_gateway(access=access, pvlist=pvlist),
+        run_ioc(db_file=db_file, dbd_file=dbd_file),
+        local_channel_access(),
+    ):
+        yield EnvironmentInfo(
+            access=access,
+            pvlist=pvlist,
+            db_file=db_file,
+            dbd_file=dbd_file,
+        )
 
 
-def standard_test_environment_decorator(
-    func=None,
-    access: str = config.default_access,
-    pvlist: str = config.default_pvlist,
-    db_file: str = config.test_ioc_db,
-    dbd_file: Optional[str] = None,
-):
-    """
-    Standard test environment as a decorator for a test function, using
-    already-existing access rights, pvlist, and database files.
-
-    Parameters
-    ----------
-    access : str, optional
-        The access rights filename.  Defaults to ``default_access``.
-
-    pvlist : str, optional
-        The pvlist filename.  Defaults to ``default_pvlist``.
-
-    db_file : str, optional
-        Path to the IOC database.  Defaults to ``test_ioc_db``.
-
-    dbd_file : str, optional
-        Path to the IOC database definition.  Defaults to using the database
-        definition provided with epics-base/softIoc.
-    """
-
-    def wrapper(func):
-        @functools.wraps(func)
-        def wrapped(*args, **kwargs):
-            with standard_test_environment(
-                access=access, pvlist=pvlist, db_file=db_file, dbd_file=dbd_file
-            ):
-                return func(*args, **kwargs)
-
-        return wrapped
-
-    if func is not None:
-        return wrapper(func)
-
-    return wrapper
+@pytest.fixture(scope="function")
+def standard_env() -> Generator[EnvironmentInfo, None, None]:
+    with file_test_environment(
+        access=config.default_access,
+        pvlist=config.default_pvlist,
+        db_file=config.test_ioc_db,
+    ) as env:
+        yield env
 
 
 @contextlib.contextmanager
@@ -401,9 +405,9 @@ def custom_environment(
     db_file: Optional[str] = config.test_ioc_db,
     dbd_file: Optional[str] = None,
     encoding: str = "latin-1",
-    ioc_args: Optional[list[str]] = None,
-    gateway_args: Optional[list[str]] = None,
-):
+    ioc_args: Optional[List[str]] = None,
+    gateway_args: Optional[List[str]] = None,
+) -> Generator[EnvironmentInfo, None, None]:
     """
     Run a gateway and an IOC in a custom environment, specifying the raw
     contents of the access control file and the pvlist.
@@ -429,91 +433,48 @@ def custom_environment(
     """
     gateway_args = gateway_args or []
     ioc_args = ioc_args or []
+    if db_file is not None:
+        with open(db_file, "rt") as fp:
+            existing_db_contents = fp.read()
+        db_contents = "\n".join((existing_db_contents, textwrap.dedent(db_contents)))
+
+    access_contents = textwrap.dedent(access_contents)
+    pvlist_contents = textwrap.dedent(pvlist_contents)
+    db_contents = textwrap.dedent(db_contents)
     with (
         tempfile.NamedTemporaryFile() as access_fp,
         tempfile.NamedTemporaryFile() as pvlist_fp,
         tempfile.NamedTemporaryFile() as dbfile_fp,
     ):
 
-        access_fp.write(textwrap.dedent(access_contents).encode(encoding))
+        access_fp.write(access_contents.encode(encoding))
         access_fp.flush()
 
-        pvlist_fp.write(textwrap.dedent(pvlist_contents).encode(encoding))
+        pvlist_fp.write(pvlist_contents.encode(encoding))
         pvlist_fp.flush()
 
-        if db_file is not None:
-            with open(db_file, "rt") as fp:
-                existing_db_contents = fp.read()
-            db_contents = "\n".join(
-                (existing_db_contents, textwrap.dedent(db_contents))
-            )
-
-        dbfile_fp.write(textwrap.dedent(db_contents).encode(encoding))
+        dbfile_fp.write(db_contents.encode(encoding))
         dbfile_fp.flush()
 
         logger.info(
             "Access rights:\n%s",
-            textwrap.indent(textwrap.dedent(access_contents), "    "),
+            textwrap.indent(access_contents, "    "),
         )
         logger.info(
             "PVList:\n%s",
-            textwrap.indent(textwrap.dedent(pvlist_contents), "    "),
+            textwrap.indent(pvlist_contents, "    "),
         )
-        with run_gateway(*gateway_args, access=access_fp.name, pvlist=pvlist_fp.name):
-            with run_ioc(*ioc_args, db_file=dbfile_fp.name, dbd_file=dbd_file):
-                with local_channel_access():
-                    yield
-
-
-def custom_environment_decorator(
-    func=None,
-    access_contents: str = "",
-    pvlist_contents: str = "",
-    db_contents: str = "",
-    db_file: Optional[str] = config.test_ioc_db,
-    dbd_file: Optional[str] = None,
-):
-    """
-    Custom test environment, as a test function decorator.
-
-    Parameters
-    ----------
-    access_contents : str, optional
-        The gateway access control configuration contents.
-
-    pvlist_contents : str, optional
-        The gateway pvlist configuration contents.
-
-    db_contents : str, optional
-        Additional database text to add to ``db_file``, if specified.
-
-    db_file : str, optional
-        Path to the IOC database.  Defaults to ``test_ioc_db``.  This is loaded
-        in addition to ``db_contents``, if specified.
-
-    dbd_file : str, optional
-        Path to the IOC database definition.  Defaults to using the database
-        definition provided with epics-base/softIoc.
-    """
-
-    def wrapper(func):
-        @functools.wraps(func)
-        def wrapped(*args, **kwargs):
-            with custom_environment(
-                access_contents=access_contents,
-                pvlist_contents=pvlist_contents,
-                db_contents=db_contents,
-                db_file=db_file,
+        with (
+            run_gateway(*gateway_args, access=access_fp.name, pvlist=pvlist_fp.name),
+            run_ioc(*ioc_args, db_file=dbfile_fp.name, dbd_file=dbd_file),
+            local_channel_access(),
+        ):
+            yield EnvironmentInfo(
+                access=access_fp.name,
+                pvlist=pvlist_fp.name,
+                db_file=dbfile_fp.name,
                 dbd_file=dbd_file,
-            ):
-                return func(*args, **kwargs)
-
-        return wrapped
-
-    if func is not None:
-        return wrapper(func)
-
-    return wrapper
+            )
 
 
 class PyepicsCallback(Protocol):
@@ -529,7 +490,7 @@ def get_pv_pair(
     ioc_callback: Optional[PyepicsCallback] = None,
     gateway_callback: Optional[PyepicsCallback] = None,
     **kwargs,
-) -> tuple[epics.PV, epics.PV]:
+) -> Tuple[epics.PV, epics.PV]:
     """
     Get a PV pair - a direct PV and a gateway PV.
 
@@ -612,7 +573,11 @@ def get_prop_support():
         nonlocal events_received_ioc
         events_received_ioc += 1
 
-    with standard_test_environment():
+    with file_test_environment(
+        access=config.default_access,
+        pvlist=config.default_pvlist,
+        db_file=config.test_ioc_db,
+    ):
         ioc = epics.PV("ioc:passive0", auto_monitor=epics.dbr.DBE_PROPERTY)
         ioc.add_callback(on_change_ioc)
         ioc.get()
@@ -638,8 +603,8 @@ def find_differences(
     struct2: Mapping[str, Any],
     desc1: str,
     desc2: str,
-    skip_keys: Optional[list[str]] = None,
-) -> Generator[tuple[str, Any, Any], None, None]:
+    skip_keys: Optional[List[str]] = None,
+) -> Generator[Tuple[str, Any, Any], None, None]:
     """
     Compare two "structures" and yield keys and values which differ.
 
@@ -817,7 +782,7 @@ def ca_subscription_pair(
     timeout: float = 0.5,
     ioc_prefix: str = "ioc:",
     gateway_prefix: str = "gateway:",
-) -> Generator[tuple[int, int], None, None]:
+) -> Generator[Tuple[int, int], None, None]:
     """
     Create low-level channels + subscriptions for IOC and gateway PVs.
 
@@ -882,7 +847,7 @@ def pyepics_caget(
     form: str = "time",
     count: int = 0,
     timeout: float = 0.5,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """
     Use low-level pyepics.ca to get data from a PV.
 
@@ -930,7 +895,7 @@ def pyepics_caget_pair(
     timeout: float = 0.5,
     ioc_prefix: str = "ioc:",
     gateway_prefix: str = "gateway:",
-) -> tuple[dict[str, Any], dict[str, Any]]:
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
     Use low-level pyepics.ca to get data from a direct PV and a gateway PV.
 
@@ -998,6 +963,7 @@ def pyepics_caput(
     try:
         connected = epics.ca.connect_channel(chid, timeout=timeout)
         assert connected, f"Could not connect to channel: {pvname}"
+        logger.warning("Connected to %s on %s", pvname, epics.ca.host_name(chid))
         epics.ca.put(chid, value, timeout=timeout)
     finally:
         epics.ca.clear_channel(chid)
@@ -1011,4 +977,5 @@ def fix_pyepics_reinitialization():
     epics.ca.initialize_libca()
     yield
     logger.debug("Finalizing libca with pyepics")
-    epics.ca.finalize_libca()
+    if is_pyepics_libca_initialized():
+        epics.ca.finalize_libca()

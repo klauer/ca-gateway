@@ -2,7 +2,7 @@
 import dataclasses
 import logging
 import textwrap
-from typing import Optional
+from typing import List, Optional
 
 import pytest
 
@@ -51,7 +51,7 @@ class AccessCheck:
 
 
 def check_permissions(
-    access_contents: str, pvlist_contents: str, access_checks: list[AccessCheck]
+    access_contents: str, pvlist_contents: str, access_checks: List[AccessCheck]
 ):
     pvlist_contents = with_pvlist_header(pvlist_contents)
     with conftest.custom_environment(access_contents, pvlist_contents):
@@ -108,7 +108,7 @@ def check_permissions(
     ],
 )
 def test_permissions_by_host_aliased(
-    access_contents: str, pvlist_contents: str, access_checks: list[AccessCheck]
+    access_contents: str, pvlist_contents: str, access_checks: List[AccessCheck]
 ):
     check_permissions(access_contents, pvlist_contents, access_checks)
 
@@ -162,7 +162,7 @@ def test_permissions_by_host_aliased(
     ],
 )
 def test_permissions_by_user_aliased(
-    access_contents: str, pvlist_contents: str, access_checks: list[AccessCheck]
+    access_contents: str, pvlist_contents: str, access_checks: List[AccessCheck]
 ):
     check_permissions(access_contents, pvlist_contents, access_checks)
 
@@ -211,7 +211,7 @@ def test_permissions_by_user_aliased(
     ],
 )
 def test_permissions_by_user_direct(
-    access_contents: str, pvlist_contents: str, access_checks: list[AccessCheck]
+    access_contents: str, pvlist_contents: str, access_checks: List[AccessCheck]
 ):
     # pvlist_contents = with_pvlist_header(pvlist_contents)
     with conftest.custom_environment(access_contents, pvlist_contents):

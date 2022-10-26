@@ -9,8 +9,7 @@ from . import conftest
 logger = logging.getLogger(__name__)
 
 
-@conftest.standard_test_environment_decorator
-def test_cs_studio_value_and_prop_monitor():
+def test_cs_studio_value_and_prop_monitor(standard_env: conftest.EnvironmentInfo):
     """
     Test CS-Studio workflow through the Gateway.
 

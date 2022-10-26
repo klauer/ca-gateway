@@ -9,8 +9,7 @@ from . import conftest
 logger = logging.getLogger(__name__)
 
 
-@conftest.standard_test_environment_decorator
-def test_alarm_level():
+def test_alarm_level(standard_env: conftest.EnvironmentInfo):
     """
     DBE_ALARM monitor on an ai with two alarm levels - crossing the level
     generates updates

@@ -3,7 +3,7 @@ import functools
 import logging
 import math
 import time
-from typing import Any
+from typing import Any, List
 
 import pytest
 from epics import ca, dbr
@@ -70,8 +70,9 @@ forms = pytest.mark.parametrize(
 )
 @masks
 @forms
-@conftest.standard_test_environment_decorator
-def test_subscription_on_connection(pvname: str, mask: int, form: str):
+def test_subscription_on_connection(
+    standard_env: conftest.EnvironmentInfo, pvname: str, mask: int, form: str
+):
     """
     Basic subscription test.
 
@@ -119,7 +120,7 @@ def is_acceptable_nan_difference(value1, value2) -> bool:
     return False
 
 
-def deduplicate_events(events: list[dict]) -> list[dict]:
+def deduplicate_events(events: List[dict]) -> List[dict]:
     """De-duplicate identical subsequent events in the list."""
     if not events:
         return []
@@ -134,9 +135,9 @@ def deduplicate_events(events: list[dict]) -> list[dict]:
 
 
 def compare_subscription_events(
-    gateway_events: list[dict],
+    gateway_events: List[dict],
     form: str,
-    ioc_events: list[dict],
+    ioc_events: List[dict],
     strict: bool = False,
     nan_strict: bool = False,
     deduplicate: bool = True,
@@ -264,8 +265,13 @@ def compare_subscription_events(
 )
 @forms
 @value_masks
-@conftest.standard_test_environment_decorator
-def test_subscription_with_put(pvname: str, mask: int, form: str, values: list[Any]):
+def test_subscription_with_put(
+    standard_env: conftest.EnvironmentInfo,
+    pvname: str,
+    mask: int,
+    form: str,
+    values: List[Any],
+):
     """
     Putting a value to the IOC and compare subscription events.
 

@@ -15,8 +15,7 @@ logger = logging.getLogger(__name__)
     os.environ.get("BASE") == "3.14",
     reason="updates of CTRL structures are buggy in 3.14 PCAS",
 )
-@conftest.standard_test_environment_decorator
-def test_ctrl_struct_value_monitor():
+def test_ctrl_struct_value_monitor(standard_env: conftest.EnvironmentInfo):
     """
     Testing structures going through the Gateway.
 

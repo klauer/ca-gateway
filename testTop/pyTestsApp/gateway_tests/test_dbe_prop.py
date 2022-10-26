@@ -9,8 +9,7 @@ from . import conftest
 logger = logging.getLogger(__name__)
 
 
-@conftest.standard_test_environment_decorator
-def test_prop_alarm_levels():
+def test_prop_alarm_levels(standard_env: conftest.EnvironmentInfo):
     """
     Test property updates (client using DBE_PROPERTY flag) direct and through the Gateway
 

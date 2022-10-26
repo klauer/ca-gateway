@@ -7,6 +7,9 @@ include $(TOP)/configure/CONFIG
 
 GATEWAY_ROOT ?= $(shell cd $(TOP)/../ && pwd)
 TEST_MODULE = gateway_tests
+
+TAPFILES = testresults.tap
+
 TEST_FILES += test.db
 TEST_FILES += access.txt
 
@@ -36,13 +39,19 @@ clean::
 endif
 
 runtests:
-	@echo "* Python is: $(shell which python)"
-	@echo "* GATEWAY_ROOT=$(GATEWAY_ROOT)"
-	@echo "* Running pytest with options: '$(PYTEST_OPTIONS)'"
+	@echo
+	@echo "Python is: $(shell which python)"
+	@echo "GATEWAY_ROOT=$(GATEWAY_ROOT)"
+	@echo "Running pytest with options: '$(PYTEST_OPTIONS)'"
 	python -m pytest $(TEST_MODULE) $(PYTEST_OPTIONS)
 
+$(TAPFILES): .runtests.tap ;
+.INTERMEDIATE: .runtests.tap
+.runtests.tap:
+	$(MAKE) PYTEST_OPTIONS="$(PYTEST_OPTIONS) --tap-files --tap-combined --tap-outdir=." runtests
+
 # Workaround for 3.14 make rules: special target to avoid circular dependencies
-build runtests: testfiles testmodule pvlist.txt
+build runtests tapfiles: testfiles testmodule pvlist.txt
 testfiles: $(TEST_FILES:%=../%)
 	$(ECHO) "Copying test files $(TEST_FILES)"
 	@$(CP) $^ .

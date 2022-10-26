@@ -26,8 +26,7 @@ import textwrap
 import threading
 import time
 from concurrent.futures import ProcessPoolExecutor
-from typing import (Any, Dict, Generator, List, Mapping, Optional, Protocol,
-                    Tuple)
+from typing import Any, Dict, Generator, List, Mapping, Optional, Protocol, Tuple
 
 import epics
 import pytest
@@ -51,7 +50,7 @@ def run_process(
 
     Parameters
     ----------
-    cmd : 
+    cmd :
     """
     verbose = True
     logger.info("Running: %s (verbose=%s)", " ".join(cmd), verbose)

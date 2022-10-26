@@ -140,10 +140,7 @@ class CaputLog:
     ],
 )
 def test_caputlog(
-    access_contents: str,
-    pvlist_contents: str,
-    pvname: str,
-    values: List[Any]
+    access_contents: str, pvlist_contents: str, pvname: str, values: List[Any]
 ):
     """
     Test that caPutLog works by putting to a PV and checking the output.
@@ -157,13 +154,13 @@ def test_caputlog(
                 access_contents,
                 pvlist_contents,
                 gateway_args=[
-                    "-putlog", 
+                    "-putlog",
                     caputlog_fp.name,
                     "-caputlog",
                     f"127.0.0.1:{config.default_putlog_port}",
                 ],
             ),
-            conftest.gateway_channel_access_env()
+            conftest.gateway_channel_access_env(),
         ):
             # Time for initial monitor event
             for value in values:

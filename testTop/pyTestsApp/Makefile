@@ -7,6 +7,7 @@ include $(TOP)/configure/CONFIG
 
 GATEWAY_ROOT ?= $(shell cd $(TOP)/../ && pwd)
 TEST_MODULE = gateway_tests
+TEST_SCRIPTS = gateway_tests/*.py
 
 TAPFILES = testresults.tap
 
@@ -43,7 +44,7 @@ runtests:
 	@echo "Python is: $(shell which python)"
 	@echo "GATEWAY_ROOT=$(GATEWAY_ROOT)"
 	@echo "Running pytest with options: '$(PYTEST_OPTIONS)'"
-	python -m pytest --junitxml="result.xml" $(TEST_MODULE) $(PYTEST_OPTIONS)
+	python -m pytest --junit-xml="result.xml" $(TEST_MODULE) $(PYTEST_OPTIONS)
 
 $(TAPFILES): .runtests.tap ;
 .INTERMEDIATE: .runtests.tap
@@ -51,14 +52,16 @@ $(TAPFILES): .runtests.tap ;
 	$(MAKE) PYTEST_OPTIONS="$(PYTEST_OPTIONS) --tap-files --tap-combined --tap-outdir=." runtests
 
 # Workaround for 3.14 make rules: special target to avoid circular dependencies
-build runtests tapfiles: testfiles testmodule pvlist.txt
+build runtests tapfiles: testfiles testmodule pvlist.txt $(TEST_SCRIPTS)
 testfiles: $(TEST_FILES:%=../%)
 	$(ECHO) "Copying test files $(TEST_FILES)"
 	@$(CP) $^ .
 
-testmodule: $(TEST_MODULE:%=../%)
+$(TEST_SCRIPTS): ;
+
+testmodule: $(TEST_SCRIPTS)
 	$(ECHO) "Copying test module $(TEST_MODULE)"
-	@$(CP) -r $^ .
+	@$(CP) -r ../$(TEST_MODULE) ./
 
 pvlist.txt: ../$(PVLIST_$(USE_PCRE))
 	$(ECHO) "Copying $< to $@ (USE_PCRE: $(USE_PCRE))"

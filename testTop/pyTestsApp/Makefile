@@ -52,7 +52,7 @@ $(TAPFILES): .runtests.tap ;
 	$(MAKE) PYTEST_OPTIONS="$(PYTEST_OPTIONS) --tap-files --tap-combined --tap-outdir=." runtests
 
 # Workaround for 3.14 make rules: special target to avoid circular dependencies
-build runtests tapfiles: testfiles testmodule pvlist.txt $(TEST_SCRIPTS)
+build runtests tapfiles: testfiles testmodule pvlist.txt
 testfiles: $(TEST_FILES:%=../%)
 	$(ECHO) "Copying test files $(TEST_FILES)"
 	@$(CP) $^ .

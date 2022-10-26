@@ -79,8 +79,8 @@ class Caput:
 class CaputLog:
     """An entire caputlog."""
 
-    header: list[str]
-    puts: list[Caput]
+    header: List[str]
+    puts: List[Caput]
 
     @classmethod
     def from_string(cls, contents: str) -> CaputLog:
@@ -143,7 +143,7 @@ def test_caputlog(
     access_contents: str,
     pvlist_contents: str,
     pvname: str,
-    values: list[Any]
+    values: List[Any]
 ):
     """
     Test that caPutLog works by putting to a PV and checking the output.

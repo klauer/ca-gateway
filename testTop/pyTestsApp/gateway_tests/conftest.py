@@ -26,7 +26,8 @@ import textwrap
 import threading
 import time
 from concurrent.futures import ProcessPoolExecutor
-from typing import Any, Generator, Mapping, Optional, Protocol
+from typing import (Any, Dict, Generator, List, Mapping, Optional, Protocol,
+                    Tuple)
 
 import epics
 import pytest
@@ -38,8 +39,8 @@ logger = logging.getLogger(__name__)
 
 @contextlib.contextmanager
 def run_process(
-    cmd: list[str],
-    env: dict[str, str],
+    cmd: List[str],
+    env: Dict[str, str],
     verbose: bool = True,
     interactive: bool = False,
     startup_time: float = 0.5,
@@ -47,6 +48,10 @@ def run_process(
 ):
     """
     Run ``cmd`` and yield a subprocess.Popen instance.
+
+    Parameters
+    ----------
+    cmd : 
     """
     verbose = True
     logger.info("Running: %s (verbose=%s)", " ".join(cmd), verbose)
@@ -278,16 +283,18 @@ def local_channel_access(
             f"localhost:{gateway_port}",
         )
     )
-    with context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"):
-        with context_set_env("EPICS_CA_ADDR_LIST", address_list):
-            epics.ca.initialize_libca()
-            try:
-                yield
-            finally:
-                # This may lead to instability - probably should only run one
-                # test per process
-                epics.ca.clear_cache()
-                epics.ca.finalize_libca()
+    with (
+        context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"),
+        context_set_env("EPICS_CA_ADDR_LIST", address_list),
+    ):
+        epics.ca.initialize_libca()
+        try:
+            yield
+        finally:
+            # This may lead to instability - probably should only run one
+            # test per process
+            epics.ca.clear_cache()
+            epics.ca.finalize_libca()
 
 
 @contextlib.contextmanager
@@ -305,17 +312,21 @@ def context_set_env(key: str, value: Any):
 @contextlib.contextmanager
 def gateway_channel_access_env(port: int = config.default_gateway_port):
     """Set the environment up for communication solely with the spawned gateway."""
-    with context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"):
-        with context_set_env("EPICS_CA_ADDR_LIST", f"localhost:{port}"):
-            yield
+    with (
+        context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"),
+        context_set_env("EPICS_CA_ADDR_LIST", f"localhost:{port}"),
+    ):
+        yield
 
 
 @contextlib.contextmanager
 def ioc_channel_access_env(port: int = config.default_ioc_port):
     """Set the environment up for communication solely with the spawned IOC."""
-    with context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"):
-        with context_set_env("EPICS_CA_ADDR_LIST", f"localhost:{port}"):
-            yield
+    with (
+        context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"),
+        context_set_env("EPICS_CA_ADDR_LIST", f"localhost:{port}"),
+    ):
+        yield
 
 
 @contextlib.contextmanager
@@ -401,8 +412,8 @@ def custom_environment(
     db_file: Optional[str] = config.test_ioc_db,
     dbd_file: Optional[str] = None,
     encoding: str = "latin-1",
-    ioc_args: Optional[list[str]] = None,
-    gateway_args: Optional[list[str]] = None,
+    ioc_args: Optional[List[str]] = None,
+    gateway_args: Optional[List[str]] = None,
 ):
     """
     Run a gateway and an IOC in a custom environment, specifying the raw
@@ -529,7 +540,7 @@ def get_pv_pair(
     ioc_callback: Optional[PyepicsCallback] = None,
     gateway_callback: Optional[PyepicsCallback] = None,
     **kwargs,
-) -> tuple[epics.PV, epics.PV]:
+) -> Tuple[epics.PV, epics.PV]:
     """
     Get a PV pair - a direct PV and a gateway PV.
 
@@ -638,8 +649,8 @@ def find_differences(
     struct2: Mapping[str, Any],
     desc1: str,
     desc2: str,
-    skip_keys: Optional[list[str]] = None,
-) -> Generator[tuple[str, Any, Any], None, None]:
+    skip_keys: Optional[List[str]] = None,
+) -> Generator[Tuple[str, Any, Any], None, None]:
     """
     Compare two "structures" and yield keys and values which differ.
 
@@ -817,7 +828,7 @@ def ca_subscription_pair(
     timeout: float = 0.5,
     ioc_prefix: str = "ioc:",
     gateway_prefix: str = "gateway:",
-) -> Generator[tuple[int, int], None, None]:
+) -> Generator[Tuple[int, int], None, None]:
     """
     Create low-level channels + subscriptions for IOC and gateway PVs.
 
@@ -882,7 +893,7 @@ def pyepics_caget(
     form: str = "time",
     count: int = 0,
     timeout: float = 0.5,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """
     Use low-level pyepics.ca to get data from a PV.
 
@@ -930,7 +941,7 @@ def pyepics_caget_pair(
     timeout: float = 0.5,
     ioc_prefix: str = "ioc:",
     gateway_prefix: str = "gateway:",
-) -> tuple[dict[str, Any], dict[str, Any]]:
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
     Use low-level pyepics.ca to get data from a direct PV and a gateway PV.
 

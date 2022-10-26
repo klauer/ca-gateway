@@ -4,7 +4,7 @@ import dataclasses
 import getpass
 import logging
 import socket
-from typing import Any, Optional
+from typing import Any, List, Dict, Tuple, Optional
 
 import caproto
 import caproto.sync.client as ca_client
@@ -23,11 +23,11 @@ class PVInfo:
     access: Optional[str] = None
     data_type: Optional[str] = None
     data_count: Optional[int] = None
-    value: Optional[list[Any]] = None
+    value: Optional[List[Any]] = None
     error: Optional[str] = None
-    time_md: Optional[dict[str, Any]] = None
-    control_md: Optional[dict[str, Any]] = None
-    address: Optional[tuple[str, int]] = None
+    time_md: Optional[Dict[str, Any]] = None
+    control_md: Optional[Dict[str, Any]] = None
+    address: Optional[Tuple[str, int]] = None
 
 
 @contextlib.contextmanager

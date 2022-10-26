@@ -9,8 +9,7 @@ from . import conftest
 logger = logging.getLogger(__name__)
 
 
-@conftest.standard_test_environment_decorator
-def test_log_deadband():
+def test_log_deadband(standard_env: conftest.EnvironmentInfo):
     """
     Test log/archive updates (client using DBE_LOG flag) through the Gateway.
 

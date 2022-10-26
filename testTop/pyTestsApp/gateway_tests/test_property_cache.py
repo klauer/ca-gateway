@@ -15,8 +15,9 @@ from . import conftest
 logger = logging.getLogger(__name__)
 
 
-@conftest.standard_test_environment_decorator
-def test_prop_cache_value_monitor_ctrl_get(prop_supported):
+def test_prop_cache_value_monitor_ctrl_get(
+    standard_env: conftest.EnvironmentInfo, prop_supported: bool
+):
     """
     Monitor PV (value events) through GW - change properties (HIGH, EGU)
     directly - get the DBR_CTRL of the PV through GW
@@ -111,8 +112,9 @@ def test_prop_cache_value_monitor_ctrl_get(prop_supported):
     ), f"Expected GW units string: {gw_expected}; actual units string: {egu_val}"
 
 
-@conftest.standard_test_environment_decorator
-def test_prop_cache_value_get_ctrl_get(prop_supported):
+def test_prop_cache_value_get_ctrl_get(
+    standard_env: conftest.EnvironmentInfo, prop_supported: bool
+):
     """
     Get PV (value) through GW - change properties (HIGH, EGU) directly -
     get the DBR_CTRL of the PV through GW
@@ -197,8 +199,9 @@ def test_prop_cache_value_get_ctrl_get(prop_supported):
     ), f"Expected GW units string: {gw_expected}; actual units string: {egu_val}"
 
 
-@conftest.standard_test_environment_decorator
-def test_prop_cache_value_get_disconnect_ctrl_get():
+def test_prop_cache_value_get_disconnect_ctrl_get(
+    standard_env: conftest.EnvironmentInfo,
+):
     """
     Get PV (value) through GW - disconnect client - change properties
     (HIGH, EGU) directly - get the DBR_CTRL of the PV through GW

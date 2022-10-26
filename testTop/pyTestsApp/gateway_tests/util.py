@@ -4,7 +4,7 @@ import dataclasses
 import getpass
 import logging
 import socket
-from typing import Any, List, Dict, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import caproto
 import caproto.sync.client as ca_client

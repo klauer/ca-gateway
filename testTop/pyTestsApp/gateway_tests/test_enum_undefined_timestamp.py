@@ -31,8 +31,9 @@ def timestamp_to_string(timestamp: float) -> str:
         pytest.param(dbr.DBE_VALUE | dbr.DBE_ALARM, id="DBE_VALUE|DBE_ALARM"),
     ],
 )
-@conftest.standard_test_environment_decorator
-def test_undefined_timestamp_subscription(subscription_mask):
+def test_undefined_timestamp_subscription(
+    standard_env: conftest.EnvironmentInfo, subscription_mask: int
+):
     """
     caget on an mbbi - with subscription configured.
 
@@ -77,8 +78,7 @@ def test_undefined_timestamp_subscription(subscription_mask):
             assert ioc_md["value"] == gateway_md["value"]
 
 
-@conftest.standard_test_environment_decorator
-def test_undefined_timestamp_get_only():
+def test_undefined_timestamp_get_only(standard_env: conftest.EnvironmentInfo):
     """
     caget on an mbbi - without subscription configured.
 

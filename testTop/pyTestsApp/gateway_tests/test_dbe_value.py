@@ -9,8 +9,7 @@ from . import conftest
 logger = logging.getLogger(__name__)
 
 
-@conftest.standard_test_environment_decorator
-def test_value_no_deadband():
+def test_value_no_deadband(standard_env: conftest.EnvironmentInfo):
     """DBE_VALUE monitor on an ai - value changes generate events."""
     events_received = 0
 

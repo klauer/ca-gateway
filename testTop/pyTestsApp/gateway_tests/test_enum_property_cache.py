@@ -20,8 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.skip(reason="detects CAS bug lp:1510955 which is not fixed yet")
-@conftest.standard_test_environment_decorator
-def test_enum_prop_cache_value_monitor_ctrl_get(prop_supported):
+def test_enum_prop_cache_value_monitor_ctrl_get(
+    standard_env: conftest.EnvironmentInfo, prop_supported: bool
+):
     """
     Monitor PV (value events) through GW - change ENUM string directly -
     get the DBR_CTRL of the PV through GW
@@ -89,8 +90,9 @@ def test_enum_prop_cache_value_monitor_ctrl_get(prop_supported):
 
 
 @pytest.mark.skip(reason="detects CAS bug lp:1510955 which is not fixed yet")
-@conftest.standard_test_environment_decorator
-def test_enum_prop_cache_value_get_ctrl_get(prop_supported):
+def test_enum_prop_cache_value_get_ctrl_get(
+    standard_env: conftest.EnvironmentInfo, prop_supported: bool
+):
     """
     Get PV (value) through GW - change ENUM string directly - get the
     DBR_CTRL of the PV through GW
@@ -147,8 +149,9 @@ def test_enum_prop_cache_value_get_ctrl_get(prop_supported):
     ), f"Expected GW enum[1]: {gw_expected}; actual enum[1]: {oneStr}"
 
 
-@conftest.standard_test_environment_decorator
-def test_enum_prop_cache_value_get_disconnect_ctrl_get():
+def test_enum_prop_cache_value_get_disconnect_ctrl_get(
+    standard_env: conftest.EnvironmentInfo,
+):
     """
     Get PV (value) through GW - disconnect client - change ENUM string
     directly - get the DBR_CTRL of the PV through GW

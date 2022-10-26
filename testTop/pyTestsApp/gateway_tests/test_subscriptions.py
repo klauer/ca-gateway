@@ -70,8 +70,9 @@ forms = pytest.mark.parametrize(
 )
 @masks
 @forms
-@conftest.standard_test_environment_decorator
-def test_subscription_on_connection(pvname: str, mask: int, form: str):
+def test_subscription_on_connection(
+    standard_env: conftest.EnvironmentInfo, pvname: str, mask: int, form: str
+):
     """
     Basic subscription test.
 
@@ -264,8 +265,13 @@ def compare_subscription_events(
 )
 @forms
 @value_masks
-@conftest.standard_test_environment_decorator
-def test_subscription_with_put(pvname: str, mask: int, form: str, values: List[Any]):
+def test_subscription_with_put(
+    standard_env: conftest.EnvironmentInfo,
+    pvname: str,
+    mask: int,
+    form: str,
+    values: List[Any],
+):
     """
     Putting a value to the IOC and compare subscription events.
 

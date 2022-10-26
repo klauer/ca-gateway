@@ -19,7 +19,7 @@ USE_PCRE ?= NO
 PVLIST_YES = pvlist_pcre.txt
 PVLIST_NO = pvlist_bre.txt
 
-PYTEST_OPTIONS ?= -v -k simple
+PYTEST_OPTIONS ?= -v
 
 CLEANS += *.pyc $(TEST_FILES) pvlist.txt gateway.* *.tap
 

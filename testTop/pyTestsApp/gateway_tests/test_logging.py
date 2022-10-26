@@ -11,7 +11,7 @@ from typing import Any, Generator, List, Optional, Union
 
 import pytest
 
-from . import conftest
+from . import conftest, config
 
 logger = logging.getLogger(__name__)
 
@@ -140,28 +140,34 @@ class CaputLog:
     ],
 )
 def test_caputlog(
-    access_contents: str, pvlist_contents: str, pvname: str, values: list[Any]
+    access_contents: str,
+    pvlist_contents: str,
+    pvname: str,
+    values: list[Any]
 ):
     """
     Test that caPutLog works by putting to a PV and checking the output.
     """
-    caputlog_port = 45634  # TODO arbitrary
-    with tempfile.NamedTemporaryFile() as caputlog_fp:
-        with listen_on_port(caputlog_port) as tcp_data:
-            with conftest.custom_environment(
+    with (
+        tempfile.NamedTemporaryFile() as caputlog_fp,
+        listen_on_port(config.default_putlog_port) as tcp_data,
+    ):
+        with (
+            conftest.custom_environment(
                 access_contents,
                 pvlist_contents,
                 gateway_args=[
-                    "-putlog",
+                    "-putlog", 
                     caputlog_fp.name,
                     "-caputlog",
-                    f"127.0.0.1:{caputlog_port}",
+                    f"127.0.0.1:{config.default_putlog_port}",
                 ],
-            ):
-                with conftest.gateway_channel_access_env():
-                    # Time for initial monitor event
-                    for value in values:
-                        conftest.pyepics_caput(pvname, value)
+            ),
+            conftest.gateway_channel_access_env()
+        ):
+            # Time for initial monitor event
+            for value in values:
+                conftest.pyepics_caput(pvname, value)
 
         caputlog_fp.seek(0)
         caputlog_raw = caputlog_fp.read()

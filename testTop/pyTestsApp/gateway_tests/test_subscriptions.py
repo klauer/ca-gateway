@@ -218,7 +218,10 @@ def compare_subscription_events(
         if all(
             is_acceptable_nan_difference(value1, value2)
             for _, value1, value2 in conftest.find_differences(
-                gateway_events[0], gateway_events[1]
+                gateway_events[0],
+                gateway_events[1],
+                desc1="event 0",
+                desc2="event 1",
             )
         ):
             if nan_strict:

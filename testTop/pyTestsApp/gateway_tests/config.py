@@ -26,9 +26,11 @@ libca_so = os.path.join(
 if "PYEPICS_LIBCA" not in os.environ and os.path.exists(libca_so):
     os.environ["PYEPICS_LIBCA"] = libca_so
 
-# Default channel access ports to use
+# Default Channel Access ports to use:
 default_ioc_port = 62782
 default_gateway_port = 62783
+# A port number for the test suite to listen on for caPutLog events:
+default_putlog_port = 45635
 default_access = os.environ.get("GATEWAY_ACCESS", str(WORKING_DIRECTORY / "access.txt"))
 
 use_pcre = _boolean_option(os.environ.get("USE_PCRE", ""))

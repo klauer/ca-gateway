@@ -43,7 +43,7 @@ runtests:
 	@echo "Python is: $(shell which python)"
 	@echo "GATEWAY_ROOT=$(GATEWAY_ROOT)"
 	@echo "Running pytest with options: '$(PYTEST_OPTIONS)'"
-	python -m pytest $(TEST_MODULE) $(PYTEST_OPTIONS)
+	python -m pytest --junitxml="result.xml" $(TEST_MODULE) $(PYTEST_OPTIONS)
 
 $(TAPFILES): .runtests.tap ;
 .INTERMEDIATE: .runtests.tap

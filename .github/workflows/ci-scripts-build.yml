@@ -180,5 +180,10 @@ jobs:
       with:
         name: tapfiles ${{ matrix.name }}
         path: '**/O.*/*.tap'
+    - name: Upload junit-xml Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: junit-xml ${{ matrix.name }}
+        path: '**/O.*/*.xml'
     - name: Collect and show test results
       run: python .ci/cue.py test-results

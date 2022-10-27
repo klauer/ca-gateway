@@ -149,7 +149,7 @@ jobs:
             name: "B-3.14 Ub-20 gcc-9, static"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
     - name: Automatic core dumper analysis
@@ -189,7 +189,7 @@ jobs:
           testTop/pyTestsApp/O.*/*.xml
       if: always()
     - name: Upload test artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ matrix.name }} - test results
         path: |

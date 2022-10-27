@@ -34,6 +34,7 @@ jobs:
       EXTRA: ${{ matrix.extra }}
       TEST: ${{ matrix.test }}
       SET: ${{ matrix.set }}
+      JUNIT_PREFIX: ${{ matrix.name }}_${{ matrix.os }}_
 
     strategy:
       fail-fast: false

@@ -20,6 +20,7 @@ PVLIST_YES = pvlist_pcre.txt
 PVLIST_NO = pvlist_bre.txt
 
 PYTEST_OPTIONS ?= -v
+JUNIT_PREFIX ?= gateway_tests_
 
 CLEANS += *.pyc $(TEST_FILES) pvlist.txt gateway.* *.tap
 
@@ -44,7 +45,7 @@ runtests:
 	@echo "Python is: $(shell which python)"
 	@echo "GATEWAY_ROOT=$(GATEWAY_ROOT)"
 	@echo "Running pytest with options: '$(PYTEST_OPTIONS)'"
-	python -m pytest --junit-xml="result.xml" $(TEST_MODULE) $(PYTEST_OPTIONS)
+	python -m pytest --junit-xml="result.xml" --junit-prefix=$(JUNIT_PREFIX) $(TEST_MODULE) $(PYTEST_OPTIONS)
 
 $(TAPFILES): .runtests.tap ;
 .INTERMEDIATE: .runtests.tap

@@ -433,35 +433,36 @@ def custom_environment(
     """
     gateway_args = gateway_args or []
     ioc_args = ioc_args or []
+    if db_file is not None:
+        with open(db_file, "rt") as fp:
+            existing_db_contents = fp.read()
+        db_contents = "\n".join((existing_db_contents, textwrap.dedent(db_contents)))
+
+    access_contents = textwrap.dedent(access_contents)
+    pvlist_contents = textwrap.dedent(pvlist_contents)
+    db_contents = textwrap.dedent(db_contents)
     with (
         tempfile.NamedTemporaryFile() as access_fp,
         tempfile.NamedTemporaryFile() as pvlist_fp,
         tempfile.NamedTemporaryFile() as dbfile_fp,
     ):
 
-        access_fp.write(textwrap.dedent(access_contents).encode(encoding))
+        access_fp.write(access_contents.encode(encoding))
         access_fp.flush()
 
-        pvlist_fp.write(textwrap.dedent(pvlist_contents).encode(encoding))
+        pvlist_fp.write(pvlist_contents.encode(encoding))
         pvlist_fp.flush()
 
-        if db_file is not None:
-            with open(db_file, "rt") as fp:
-                existing_db_contents = fp.read()
-            db_contents = "\n".join(
-                (existing_db_contents, textwrap.dedent(db_contents))
-            )
-
-        dbfile_fp.write(textwrap.dedent(db_contents).encode(encoding))
+        dbfile_fp.write(db_contents.encode(encoding))
         dbfile_fp.flush()
 
         logger.info(
             "Access rights:\n%s",
-            textwrap.indent(textwrap.dedent(access_contents), "    "),
+            textwrap.indent(access_contents, "    "),
         )
         logger.info(
             "PVList:\n%s",
-            textwrap.indent(textwrap.dedent(pvlist_contents), "    "),
+            textwrap.indent(pvlist_contents, "    "),
         )
         with (
             run_gateway(*gateway_args, access=access_fp.name, pvlist=pvlist_fp.name),
@@ -962,6 +963,7 @@ def pyepics_caput(
     try:
         connected = epics.ca.connect_channel(chid, timeout=timeout)
         assert connected, f"Could not connect to channel: {pvname}"
+        logger.warning("Connected to %s on %s", pvname, epics.ca.host_name(chid))
         epics.ca.put(chid, value, timeout=timeout)
     finally:
         epics.ca.clear_channel(chid)
@@ -972,7 +974,7 @@ def fix_pyepics_reinitialization():
     logger.debug("Performing garbage collection...")
     gc.collect()
     logger.debug("Initializing libca with pyepics")
-    # epics.ca.initialize_libca()
+    epics.ca.initialize_libca()
     yield
     logger.debug("Finalizing libca with pyepics")
     if is_pyepics_libca_initialized():

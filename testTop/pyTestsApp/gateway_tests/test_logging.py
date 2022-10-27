@@ -24,19 +24,23 @@ def listen_on_port(port: int, encoding="latin-1") -> Generator[List[str], None, 
     def listen():
         sock.listen(1)
         client, addr = sock.accept()
-        logger.warning("TCP accepted client %s", addr)
-        while True:
-            read = client.recv(4096)
-            logger.info("caPutLog TCP server received %s", read)
-            if not data:
-                client.close()
-                return
-            data.append(read.decode(encoding))
+        try:
+            logger.warning("Accepted client on localhost:%d - %s", port, addr)
+            while True:
+                read = client.recv(4096)
+                logger.info("caPutLog TCP server received %s", read)
+                if not data:
+                    break
+                data.append(read.decode(encoding))
+        finally:
+            client.close()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Avoid "address already in use" between successive caputlog tests
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind(("127.0.0.1", port))
+    threading.Thread(target=listen, daemon=True).start()
     try:
-        sock.bind(("127.0.0.1", port))
-        threading.Thread(target=listen, daemon=True).start()
         yield data
     finally:
         sock.close()
@@ -118,7 +122,7 @@ class CaputLog:
             """,
             """\
             EVALUATION ORDER ALLOW, DENY
-            .* ALLOW DEFAULT
+            .* ALLOW
             """,
             id="minimal",
         ),
@@ -152,8 +156,8 @@ def test_caputlog(
     ):
         with (
             conftest.custom_environment(
-                access_contents,
-                pvlist_contents,
+                access_contents=access_contents,
+                pvlist_contents=pvlist_contents,
                 gateway_args=[
                     "-putlog",
                     caputlog_fp.name,
@@ -164,7 +168,7 @@ def test_caputlog(
             conftest.gateway_channel_access_env(),
         ):
             logger.info("Environment: %s", env)
-            # Time for initial monitor event
+            logger.info("Initial value: %s", conftest.pyepics_caget(pvname))
             for value in values:
                 conftest.pyepics_caput(pvname, value)
 

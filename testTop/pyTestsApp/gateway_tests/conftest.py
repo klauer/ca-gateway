@@ -565,11 +565,17 @@ class GatewayStats:
         self.inactive = epics.ca.get(self._inactive)
 
 
-def get_prop_support():
+def get_prop_support(*, reset_pyepics: bool = True):
     """Is DBE_PROPERTY supported?"""
     events_received_ioc = 0
 
-    def on_change_ioc(**kwargs):
+    if not is_pyepics_libca_initialized():
+        # This is intended to be run in a subprocess, isolated from the test
+        # environment.  The CA context may not be set yet, or set correctly.
+        # Reset it here.
+        epics.ca.initialize_libca()
+
+    def on_change_ioc(**_):
         nonlocal events_received_ioc
         events_received_ioc += 1
 
@@ -578,18 +584,23 @@ def get_prop_support():
         pvlist=config.default_pvlist,
         db_file=config.test_ioc_db,
     ):
-        ioc = epics.PV("ioc:passive0", auto_monitor=epics.dbr.DBE_PROPERTY)
-        ioc.add_callback(on_change_ioc)
-        ioc.get()
+        passive0 = epics.PV("ioc:passive0", auto_monitor=epics.dbr.DBE_PROPERTY)
+        if not passive0.wait_for_connection():
+            raise RuntimeError(
+                "Unable to check for DBE_PROPERTY support; failed to connect to "
+                "test PV."
+            )
+        passive0.add_callback(on_change_ioc)
+        passive0.get()
 
-        pvhigh = epics.PV("ioc:passive0.HIGH", auto_monitor=None)
-        pvhigh.put(18.0, wait=True)
-        time.sleep(0.05)
+        passive0_high = epics.PV("ioc:passive0.HIGH", auto_monitor=None)
+        passive0_high.put(18.0, wait=True)
+        time.sleep(0.2)
 
     return events_received_ioc == 2
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def prop_supported() -> bool:
     """Is DBE_PROPERTY supported?"""
     with ProcessPoolExecutor() as exec:

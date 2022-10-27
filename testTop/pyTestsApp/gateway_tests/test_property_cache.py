@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def test_prop_cache_value_monitor_ctrl_get(
-    standard_env: conftest.EnvironmentInfo, prop_supported: bool
+    prop_supported: bool, standard_env: conftest.EnvironmentInfo
 ):
     """
     Monitor PV (value events) through GW - change properties (HIGH, EGU)
@@ -113,7 +113,7 @@ def test_prop_cache_value_monitor_ctrl_get(
 
 
 def test_prop_cache_value_get_ctrl_get(
-    standard_env: conftest.EnvironmentInfo, prop_supported: bool
+    prop_supported: bool, standard_env: conftest.EnvironmentInfo
 ):
     """
     Get PV (value) through GW - change properties (HIGH, EGU) directly -

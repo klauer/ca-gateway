@@ -53,7 +53,9 @@ gateway_executable = os.path.join(
 
 def _get_softioc(host_arch: str) -> str:
     """Find the softIoc binary based on the environment settings."""
-    if "IOC_EPICS_BASE" in os.environ:
+    if "IOC_EXECUTABLE" in os.environ:
+        ioc_executable = os.environ["IOC_EXECUTABLE"]
+    elif "IOC_EPICS_BASE" in os.environ:
         ioc_executable = os.path.join(
             os.environ["IOC_EPICS_BASE"], "bin", host_arch, "softIoc"
         )

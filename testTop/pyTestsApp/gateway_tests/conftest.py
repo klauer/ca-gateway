@@ -303,9 +303,14 @@ def context_set_env(key: str, value: Any):
             os.environ[key] = orig_value
 
 
+def is_pyepics_libca_initialized() -> bool:
+    """Has pyepics' LIBCA been initialized?"""
+    return epics.ca.libca not in (None, epics.ca._LIBCA_FINALIZED)
+
+
 def _reset_libca() -> None:
     gc.collect()
-    if epics.ca.libca is not None:
+    if is_pyepics_libca_initialized():
         epics.ca.finalize_libca()
         epics.ca.clear_cache()
         epics.ca.initialize_libca()
@@ -962,12 +967,13 @@ def pyepics_caput(
         epics.ca.clear_channel(chid)
 
 
-# @pytest.fixture(autouse=True)
-# def fix_pyepics_reinitialization():
-#     logger.debug("Performing garbage collection...")
-#     gc.collect()
-#     logger.debug("Initializing libca with pyepics")
-#     # epics.ca.initialize_libca()
-#     yield
-#     logger.debug("Finalizing libca with pyepics")
-#     epics.ca.finalize_libca()
+@pytest.fixture(autouse=True)
+def fix_pyepics_reinitialization():
+    logger.debug("Performing garbage collection...")
+    gc.collect()
+    logger.debug("Initializing libca with pyepics")
+    # epics.ca.initialize_libca()
+    yield
+    logger.debug("Finalizing libca with pyepics")
+    if is_pyepics_libca_initialized():
+        epics.ca.finalize_libca()

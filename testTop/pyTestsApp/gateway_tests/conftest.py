@@ -287,14 +287,8 @@ def local_channel_access(
         context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"),
         context_set_env("EPICS_CA_ADDR_LIST", address_list),
     ):
-        epics.ca.initialize_libca()
-        try:
-            yield
-        finally:
-            # This may lead to instability - probably should only run one
-            # test per process
-            epics.ca.clear_cache()
-            epics.ca.finalize_libca()
+        _reset_libca()
+        yield
 
 
 @contextlib.contextmanager
@@ -309,6 +303,14 @@ def context_set_env(key: str, value: Any):
             os.environ[key] = orig_value
 
 
+def _reset_libca() -> None:
+    gc.collect()
+    if epics.ca.libca is not None:
+        epics.ca.finalize_libca()
+        epics.ca.clear_cache()
+        epics.ca.initialize_libca()
+
+
 @contextlib.contextmanager
 def gateway_channel_access_env(port: int = config.default_gateway_port):
     """Set the environment up for communication solely with the spawned gateway."""
@@ -316,6 +318,7 @@ def gateway_channel_access_env(port: int = config.default_gateway_port):
         context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"),
         context_set_env("EPICS_CA_ADDR_LIST", f"localhost:{port}"),
     ):
+        _reset_libca()
         yield
 
 
@@ -326,6 +329,7 @@ def ioc_channel_access_env(port: int = config.default_ioc_port):
         context_set_env("EPICS_CA_AUTO_ADDR_LIST", "NO"),
         context_set_env("EPICS_CA_ADDR_LIST", f"localhost:{port}"),
     ):
+        _reset_libca()
         yield
 
 
@@ -958,12 +962,12 @@ def pyepics_caput(
         epics.ca.clear_channel(chid)
 
 
-@pytest.fixture(autouse=True)
-def fix_pyepics_reinitialization():
-    logger.debug("Performing garbage collection...")
-    gc.collect()
-    logger.debug("Initializing libca with pyepics")
-    epics.ca.initialize_libca()
-    yield
-    logger.debug("Finalizing libca with pyepics")
-    epics.ca.finalize_libca()
+# @pytest.fixture(autouse=True)
+# def fix_pyepics_reinitialization():
+#     logger.debug("Performing garbage collection...")
+#     gc.collect()
+#     logger.debug("Initializing libca with pyepics")
+#     # epics.ca.initialize_libca()
+#     yield
+#     logger.debug("Finalizing libca with pyepics")
+#     epics.ca.finalize_libca()

@@ -20,8 +20,6 @@ logger = logging.getLogger(__name__)
 def listen_on_port(port: int, encoding="latin-1") -> Generator[List[str], None, None]:
     """Listen on TCP port `port` for caPutLog data."""
     data = []
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind(("127.0.0.1", port))
 
     def listen():
         sock.listen(1)
@@ -35,10 +33,13 @@ def listen_on_port(port: int, encoding="latin-1") -> Generator[List[str], None, 
                 return
             data.append(read.decode(encoding))
 
-    threading.Thread(target=listen, daemon=True).start()
-    yield data
-    sock.shutdown(socket.SHUT_WR)
-    sock.close()
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind(("127.0.0.1", port))
+        threading.Thread(target=listen, daemon=True).start()
+        yield data
+    finally:
+        sock.close()
 
 
 @dataclasses.dataclass
@@ -159,9 +160,10 @@ def test_caputlog(
                     "-caputlog",
                     f"127.0.0.1:{config.default_putlog_port}",
                 ],
-            ),
+            ) as env,
             conftest.gateway_channel_access_env(),
         ):
+            logger.info("Environment: %s", env)
             # Time for initial monitor event
             for value in values:
                 conftest.pyepics_caput(pvname, value)

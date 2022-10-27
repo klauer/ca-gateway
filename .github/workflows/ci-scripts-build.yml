@@ -180,15 +180,20 @@ jobs:
       run: python .ci/cue.py build
     - name: Run main module tests
       run: python .ci/cue.py test
-    - name: Upload tapfiles Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: tapfiles ${{ matrix.name }}
-        path: '**/O.*/*.tap'
-    - name: Upload junit-xml Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: junit-xml ${{ matrix.name }}
-        path: '**/O.*/*.xml'
     - name: Collect and show test results
       run: python .ci/cue.py test-results
+    - name: Generate test summary
+      uses: test-summary/action@v2
+      with:
+        paths: |
+          testTop/pyTestsApp/O.*/*.xml
+      if: always()
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.name }} - test results
+        path: |
+          testTop/pyTestsApp/O.*/*.tap
+          testTop/pyTestsApp/O.*/*.xml
+          test-summary.md
+      if: always()
